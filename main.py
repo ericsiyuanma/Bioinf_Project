@@ -1,77 +1,73 @@
 import re
+import string
 
 
-def read_parse_sequence():
-    f = open('sequence.txt', 'r+')
+class Gene:
+
+    def __init__(self, start, end, name):
+        self.start = start
+        self.end = end
+        self.name = name
+        self.sequence = ""
+        self.cds = []
+
+    def __str__(self):
+        return "name is %s, start is %s, end is %s" % (self.name, self.start, self.end)
+
+
+def find_genes(file):
+    genelist = []
+    f = open(file, 'r+')
     readstuff = f.read()
-    result = ''.join([i for i in readstuff if i.isalpha()]).lower()
-    return result
+    p = re.compile("gene\\s+\\d+..\\d+\\s*\/gene=\".+\"")
+    result = p.findall(readstuff)
+    for match in result:
+        coords =  re.findall('\d+', match)
+        start = coords[0]
+        end = coords[1]
+        name = match.split("\"")[1].split("\"")[0]
+        new_gene = Gene(start,end,name)
+        genelist.append(new_gene)
+    return genelist
 
 
-def read_parse_mrna():
-    f1 = open("mRNA.txt", "r+")
-    readmrna = f1.read()
-    result1 = re.findall('\d+', readmrna)
-    return result1
+def find_cds(file):
+    genelist = []
+    f = open(file, 'r+')
+    readstuff = f.read()
+    p = re.compile("CDS\\s+\\d+..\\d+\\s*\/gene=\".+\"")
+    p1 = re.compile("CDS\\s+\\d+..\\d+\\s*\/gene=\".+\"")
+    result = p.findall(readstuff)
+    print(result)
+    for match in result:
+        coords =  re.findall('\d+', match)
+        start = coords[0]
+        end = coords[1]
+        name = match.split("\"")[1].split("\"")[0]
+        new_gene = Gene(start,end,name)
+        genelist.append(new_gene)
+    return genelist
 
 
-def read_parse_cds():
-    f2 = open("cds.txt", "r+")
-    readcds = f2.read()
-    result2 = re.findall('\d+', readcds)
-    return result2
+def read_fasta(file):
+    f = open(file, 'r+')
+    readstuff = f.read()
+    genome = readstuff.split("complete genome")[1].translate(str.maketrans('', '', string.whitespace))
+    return genome
 
 
-def make_intron(result, result1):
-    count = 0
-    # go through all exon sequences
-    for x in range(1, int(len(result1) / 2)+1):
-        # exon sequences make uppercase
-        for y in range(int(result1[count]) -1, int(result1[count+1])):
-            result = result[:y] + result[y].swapcase() + result[y+1:]
-        count += 2
+def main():
+    sequence = read_fasta("hiv1.fasta")
+    genelist = find_genes("hiv1.gb")
+    for genex in genelist:
+        genex.sequence = sequence[int(genex.start)-1:int(genex.end)]
 
-    finalfile = open("finished.txt", "w")
-    finalfile.write(result)
-    return(result)
+    cdslist = find_cds("hiv1.gb")
+    for genex in cdslist:
+        print(genex)
 
 
-def find_three_utr(gene):
-    """
-    These are hardcoded for now
-
-    :param gene:
-    :return:
-    """
-    three = gene[79806:81188]
-    finalfile1 = open("three.txt", "w")
-    finalfile1.write(three)
-    print(three)
-
-
-def find_five_utr(gene):
-    """
-    Hardcoded for now
-    :param gene:
-    :return:
-    """
-    five = gene[:213] + gene[1368:1386]
-    finalfile2 = open("five.txt", "w")
-    finalfile2.write(five)
-    print(five)
-
-
-
-sequence = read_parse_sequence()
-mrna = read_parse_mrna()
-cds = read_parse_cds()
-gene = make_intron(sequence, mrna)
-find_three_utr(gene)
-find_five_utr(gene)
-
-
-
-
-
+if __name__ == "__main__":
+    main()
 
 

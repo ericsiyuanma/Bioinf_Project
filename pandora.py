@@ -30,7 +30,7 @@ class Gene:
         self.gc_content_overall = (self.gene_sequence.count('G') +
                                    self.gene_sequence.count('C'))/len(self.gene_sequence)
 
-        print(self.gc_content_overall)
+        #print(self.gc_content_overall)
 
 
 def find_genes(file):
@@ -39,11 +39,12 @@ def find_genes(file):
     readstuff = f.read()
     p = re.compile("gene\\s+\\d+\.\.\\d+\\s+.*\\s+\/locus_tag=\".+\"")
     result = p.findall(readstuff)
+    print(len(result))
     for match in result:
         coords =  re.findall('\d+', match)
         start = coords[0]
         end = coords[1]
-        name = match.split("\"")[3].split("\"")[0]
+        name = match.split("\"")[1].split("\"")[0]
         new_gene = {"name": name, "gene_coords_list": [int(start), int(end)]}
         genelist.append(new_gene)
     return genelist
@@ -61,19 +62,20 @@ def find_cds(file):
         coords =  re.findall('\d+', match)
         start = coords[0]
         end = coords[1]
-        name = match.split("\"")[3].split("\"")[0]
+        name = match.split("\"")[1].split("\"")[0]
         cdsobject = {"name": name, "cds_coords_list": [[int(start), int(end)]]}
         cdslist.append(cdsobject)
 
     for match1 in result1:
         coords =  re.findall('\d+\.\.\d+', match1)
+        #print(coords)
         pairlist = []
         for pair in coords:
             pairtemp = pair.split("..")
             pairobject = [int(pairtemp[0]), int(pairtemp[1])]
             pairlist.append(pairobject)
 
-        name = match1.split("\"")[3].split("\"")[0]
+        name = match1.split("\"")[1].split("\"")[0]
         cdsobject = {"name": name, "cds_coords_list": pairlist}
         cdslist.append(cdsobject)
     return cdslist
@@ -101,10 +103,10 @@ def map_gene_object(genelist, cdslist):
 
 
 def main():
-    genelist = find_genes("hiv1.gb")
+    genelist = find_genes("pandora.gb")
 
-    cdslist = find_cds("hiv1.gb")
-    sequence = read_fasta("hiv1.fasta")
+    cdslist = find_cds("pandora.gb")
+    sequence = read_fasta("pandora.fasta")
 
     gene_object_list = map_gene_object(genelist, cdslist)
 
@@ -116,10 +118,9 @@ def main():
             cds_seq_list.append(cds_seq)
         genex.cds_sequence_list = cds_seq_list
         genex.calculate_gc_contents()
-        print(genex.cds_sequence_list)
 
-    hiv1 = Genome("hiv1", gene_object_list, sequence=sequence)
-
+    pandora = Genome("pandora", gene_object_list, sequence=sequence)
+    #print(len(pandora.genes))
 
 if __name__ == "__main__":
     main()

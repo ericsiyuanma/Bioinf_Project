@@ -1,9 +1,13 @@
 import re
 import string
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 class Genome:
-    def __init__(self,  name, genes, sequence):
+    def __init__(self, name, genes, sequence):
         self.name = name
         self.genes = genes
         self.sequence = sequence
@@ -11,12 +15,13 @@ class Genome:
 
 class Gene:
 
-    def __init__(self,  name, gene_coords, cds_coords):
+    def __init__(self, name, gene_coords, cds_coords):
         self.name = name
         self.gene_coords = gene_coords
         self.cds_coords = cds_coords
         self.gene_sequence = ""
         self.cds_sequence_list = []
+        self.size = 0
 
         self.gc_content_overall = 0
         self.gc_content_coding = 0
@@ -28,9 +33,8 @@ class Gene:
 
     def calculate_gc_contents(self):
         self.gc_content_overall = (self.gene_sequence.count('G') +
-                                   self.gene_sequence.count('C'))/len(self.gene_sequence)
-
-        print(self.gc_content_overall)
+                                   self.gene_sequence.count('C')) / len(self.gene_sequence)
+        self.size = int(len(self.gene_sequence))
 
 
 def find_genes(file):
@@ -40,7 +44,7 @@ def find_genes(file):
     p = re.compile("gene\\s+\\d+\.\.\\d+\\s+.*\\s+\/locus_tag=\".+\"")
     result = p.findall(readstuff)
     for match in result:
-        coords =  re.findall('\d+', match)
+        coords = re.findall('\d+', match)
         start = coords[0]
         end = coords[1]
         name = match.split("\"")[3].split("\"")[0]
@@ -58,7 +62,7 @@ def find_cds(file):
     result = p.findall(readstuff)
     result1 = p1.findall(readstuff)
     for match in result:
-        coords =  re.findall('\d+', match)
+        coords = re.findall('\d+', match)
         start = coords[0]
         end = coords[1]
         name = match.split("\"")[3].split("\"")[0]
@@ -66,7 +70,7 @@ def find_cds(file):
         cdslist.append(cdsobject)
 
     for match1 in result1:
-        coords =  re.findall('\d+\.\.\d+', match1)
+        coords = re.findall('\d+\.\.\d+', match1)
         pairlist = []
         for pair in coords:
             pairtemp = pair.split("..")
@@ -87,7 +91,6 @@ def read_fasta(file):
 
 
 def map_gene_object(genelist, cdslist):
-
     gene_object_list = []
     for gene in genelist:
 
@@ -100,6 +103,12 @@ def map_gene_object(genelist, cdslist):
     return gene_object_list
 
 
+def draw_plot_something(diamonds):
+    plt.clf()
+    plt.scatter(x='overall_gc', y='size', data=diamonds, alpha=0.5)
+    plt.show()
+
+
 def main():
     genelist = find_genes("hiv1.gb")
 
@@ -108,20 +117,25 @@ def main():
 
     gene_object_list = map_gene_object(genelist, cdslist)
 
+    dflisttemp = []
     for genex in gene_object_list:
-        genex.gene_sequence = sequence[genex.gene_coords[0]-1:genex.gene_coords[1]]
+        genex.gene_sequence = sequence[genex.gene_coords[0] - 1:genex.gene_coords[1]]
         cds_seq_list = []
         for cds_coords in genex.cds_coords:
-            cds_seq = sequence[cds_coords[0]-1:cds_coords[1]]
+            cds_seq = sequence[cds_coords[0] - 1:cds_coords[1]]
             cds_seq_list.append(cds_seq)
         genex.cds_sequence_list = cds_seq_list
         genex.calculate_gc_contents()
-        print(genex.cds_sequence_list)
+        dflisttemp.append([genex.name, int(genex.size), genex.gc_content_overall])
 
     hiv1 = Genome("hiv1", gene_object_list, sequence=sequence)
+    hiv1df = pd.DataFrame(np.array(dflisttemp), columns=['locus_tag', 'size', 'overall_gc'])
+    hiv1dfsorted = hiv1df.sort_values(by=['size'])
+    hiv1dfsorted['size'] = pd.to_numeric(hiv1dfsorted['size'])
+    hiv1dfsorted['overall_gc'] = pd.to_numeric(hiv1dfsorted['overall_gc'])
+    draw_plot_something(hiv1dfsorted)
+    hiv1dfsorted.to_csv('hiv1.csv', encoding='utf-8', index=False)
 
 
 if __name__ == "__main__":
     main()
-
-

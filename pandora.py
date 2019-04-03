@@ -1,12 +1,17 @@
 import re
 import string
-
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 class Genome:
     def __init__(self,  name, genes, sequence):
         self.name = name
         self.genes = genes
         self.sequence = sequence
+        self.size = 0
+
 
 
 class Gene:
@@ -29,6 +34,7 @@ class Gene:
     def calculate_gc_contents(self):
         self.gc_content_overall = (self.gene_sequence.count('G') +
                                    self.gene_sequence.count('C'))/len(self.gene_sequence)
+        self.size = int(len(self.gene_sequence))
 
         #print(self.gc_content_overall)
 
@@ -110,6 +116,7 @@ def main():
 
     gene_object_list = map_gene_object(genelist, cdslist)
 
+    dflisttemp = []
     for genex in gene_object_list:
         genex.gene_sequence = sequence[genex.gene_coords[0]-1:genex.gene_coords[1]]
         cds_seq_list = []
@@ -118,6 +125,10 @@ def main():
             cds_seq_list.append(cds_seq)
         genex.cds_sequence_list = cds_seq_list
         genex.calculate_gc_contents()
+        dflisttemp.append([genex.name, int(genex.size), genex.gc_content_overall])
+
+    pandoradf = pd.DataFrame(np.array(dflisttemp), columns=['locus_tag', 'size', 'overall_gc'])
+    pandoradf.to_csv('pandoravirus.csv', encoding='utf-8', index=False)
 
     pandora = Genome("pandora", gene_object_list, sequence=sequence)
     #print(len(pandora.genes))

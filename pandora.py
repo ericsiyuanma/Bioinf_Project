@@ -53,10 +53,12 @@ class Gene:
         count_gc = 0
         count_at = 0
         for section in self.non_cds_sequence_list:
-            print(section)
             count_gc += section.count('G') + section.count('C')
             count_at += section.count('A') + section.count('T')
 
+        if count_at == 0 and count_gc == 0:
+            count_at = 1
+            count_gc = 0
         self.gc_content_non_coding = count_gc / (count_at + count_gc)
 
 
@@ -151,11 +153,12 @@ def main():
         genex.cds_sequence_list = cds_seq_list
 
         #getting sequence of non-cds
-        non_cds_seq_list = []
-        for cds_coords in genex.cds_coords:
-            non_cds_seq = sequence[:cds_coords[0] - 1] + sequence[cds_coords[1]:]
-            non_cds_seq_list.append(non_cds_seq)
-        genex.non_cds_sequence_list = non_cds_seq_list
+        myList = ', '.join(map(str, genex.cds_coords)).replace("]", "").replace("[", "").split(", ")
+        non_cds_seq = ""
+        for i in range(0,len(myList)-1,2):
+            non_cds_seq = non_cds_seq + sequence[genex.gene_coords[0]: int(myList[i])] + sequence[int(myList[i+1]):genex.gene_coords[1]]
+        genex.non_cds_sequence_list = non_cds_seq
+
 
         genex.calculate_gc_contents()
         genex.calculate_gc_content_coding()

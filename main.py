@@ -152,17 +152,11 @@ def main():
         genex.cds_sequence_list = cds_seq_list
 
         #getting sequence of non-cds
-        non_cds_seq_list = []
-        for cds_coords in genex.cds_coords:
-            print("#######################33")
-            print(genex.gene_coords)
-            print(cds_coords, sequence[genex.gene_coords[0]:cds_coords[0]])
-            print( sequence[cds_coords[1]:genex.gene_coords[1]])
-            print("########################33")
-            non_cds_seq = sequence[genex.gene_coords[0]:cds_coords[0]] + sequence[cds_coords[1]:genex.gene_coords[1]]
-            non_cds_seq_list.append(non_cds_seq)
-        genex.non_cds_sequence_list = non_cds_seq_list
-
+        myList = ', '.join(map(str, genex.cds_coords)).replace("]", "").replace("[", "").split(", ")
+        non_cds_seq = ""
+        for i in range(0,len(myList)-1,2):
+            non_cds_seq = non_cds_seq + sequence[genex.gene_coords[0]: int(myList[i])] + sequence[int(myList[i+1]):genex.gene_coords[1]]
+        genex.non_cds_sequence_list = non_cds_seq
 
         # calculate the gc content amounts
         genex.calculate_gc_contents()

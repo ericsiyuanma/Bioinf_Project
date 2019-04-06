@@ -5,13 +5,13 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+
 class Genome:
     def __init__(self,  name, genes, sequence):
         self.name = name
         self.genes = genes
         self.sequence = sequence
         self.size = 0
-
 
 
 class Gene:
@@ -22,6 +22,7 @@ class Gene:
         self.cds_coords = cds_coords
         self.gene_sequence = ""
         self.cds_sequence_list = []
+        self.non_cds_sequence_list = []
 
         self.gc_content_overall = 0
         self.gc_content_coding = 0
@@ -38,16 +39,36 @@ class Gene:
 
         #print(self.gc_content_overall)
 
+    def calculate_gc_content_coding(self):
+        count_gc = 0
+        count_at = 0
+        for section in self.cds_sequence_list:
+            count_gc += section.count('G') + section.count('C')
+            count_at += section.count('A') + section.count('T')
+
+        self.gc_content_coding = count_gc / (count_at + count_gc)
+
+
+    def calculate_gc_content_non_coding(self):
+        count_gc = 0
+        count_at = 0
+        for section in self.non_cds_sequence_list:
+            print(section)
+            count_gc += section.count('G') + section.count('C')
+            count_at += section.count('A') + section.count('T')
+
+        self.gc_content_non_coding = count_gc / (count_at + count_gc)
+
 
 def find_genes(file):
     genelist = []
     f = open(file, 'r+')
     readstuff = f.read()
-    p = re.compile("gene\\s+\\d+\.\.\\d+\\s+.*\\s+\/locus_tag=\".+\"")
+    p = re.compile("gene\\s+(?:complement\()?\\d+\.\.\\d+\)?\\s+.*\\s+\/locus_tag=\".+\"")
     result = p.findall(readstuff)
     print(len(result))
     for match in result:
-        coords =  re.findall('\d+', match)
+        coords =  re.findall('\\d+', match)
         start = coords[0]
         end = coords[1]
         name = match.split("\"")[1].split("\"")[0]
@@ -60,10 +81,12 @@ def find_cds(file):
     cdslist = []
     f = open(file, 'r+')
     readstuff = f.read()
-    p = re.compile("CDS\\s+\\d+\.\.\\d+\\s+.*\\s+\/locus_tag=\".+\"")
-    p1 = re.compile("CDS\\s+join\(.+\)\\s+.*\\s+\/locus_tag=\".+\"")
+    p = re.compile("CDS\\s+(?:complement\()?\\d+\.\.\\d+\)?\\s+.*\\s+\/locus_tag=\".+\"")
+    p1 = re.compile("CDS\\s+(?:complement\()?join\(.+\)\)?\\s+.*\\s+\/locus_tag=\".+\"")
     result = p.findall(readstuff)
     result1 = p1.findall(readstuff)
+    print(len(result))
+    print(len(result1))
     for match in result:
         coords =  re.findall('\d+', match)
         start = coords[0]
@@ -84,6 +107,7 @@ def find_cds(file):
         name = match1.split("\"")[1].split("\"")[0]
         cdsobject = {"name": name, "cds_coords_list": pairlist}
         cdslist.append(cdsobject)
+        print(cdsobject)
     return cdslist
 
 
@@ -120,18 +144,31 @@ def main():
     for genex in gene_object_list:
         genex.gene_sequence = sequence[genex.gene_coords[0]-1:genex.gene_coords[1]]
         cds_seq_list = []
+
         for cds_coords in genex.cds_coords:
             cds_seq = sequence[cds_coords[0]-1:cds_coords[1]]
             cds_seq_list.append(cds_seq)
         genex.cds_sequence_list = cds_seq_list
-        genex.calculate_gc_contents()
-        dflisttemp.append([genex.name, int(genex.size), genex.gc_content_overall])
 
-    pandoradf = pd.DataFrame(np.array(dflisttemp), columns=['locus_tag', 'size', 'overall_gc'])
+        #getting sequence of non-cds
+        non_cds_seq_list = []
+        for cds_coords in genex.cds_coords:
+            non_cds_seq = sequence[:cds_coords[0] - 1] + sequence[cds_coords[1]:]
+            non_cds_seq_list.append(non_cds_seq)
+        genex.non_cds_sequence_list = non_cds_seq_list
+
+        genex.calculate_gc_contents()
+        genex.calculate_gc_content_coding()
+        genex.calculate_gc_content_non_coding()
+
+        dflisttemp.append([genex.name, int(genex.size), genex.gc_content_overall, genex.gc_content_coding, genex.gc_content_non_coding])
+
+    pandoradf = pd.DataFrame(np.array(dflisttemp), columns=['locus_tag', 'size', 'overall_gc', 'coding_gc', 'non_coding_gc'])
     pandoradf.to_csv('pandoravirus.csv', encoding='utf-8', index=False)
 
     pandora = Genome("pandora", gene_object_list, sequence=sequence)
     #print(len(pandora.genes))
+
 
 if __name__ == "__main__":
     main()

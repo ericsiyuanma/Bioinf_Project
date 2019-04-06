@@ -21,6 +21,7 @@ class Gene:
         self.cds_coords = cds_coords
         self.gene_sequence = ""
         self.cds_sequence_list = []
+        self.non_cds_sequence_list = []
         self.size = 0
 
         self.gc_content_overall = 0
@@ -35,6 +36,27 @@ class Gene:
         self.gc_content_overall = (self.gene_sequence.count('G') +
                                    self.gene_sequence.count('C')) / len(self.gene_sequence)
         self.size = int(len(self.gene_sequence))
+
+    def calculate_gc_content_coding(self):
+        count_gc = 0
+        count_at = 0
+        for section in self.cds_sequence_list:
+            count_gc += section.count('G') + section.count('C')
+            count_at += section.count('A') + section.count('T')
+
+        self.gc_content_coding = count_gc / (count_at + count_gc)
+
+    def calculate_gc_content_non_coding(self):
+        count_gc = 0
+        count_at = 0
+        for section in self.non_cds_sequence_list:
+            count_gc += section.count('G') + section.count('C')
+            count_at += section.count('A') + section.count('T')
+
+        if count_at == 0 and count_gc == 0:
+            count_at = 1
+            count_gc = 0
+        self.gc_content_non_coding = count_gc / (count_at + count_gc)
 
 
 def find_genes(file):
@@ -118,22 +140,43 @@ def main():
     gene_object_list = map_gene_object(genelist, cdslist)
 
     dflisttemp = []
+    # Getting the actual sequence based on the gene coordinates
     for genex in gene_object_list:
         genex.gene_sequence = sequence[genex.gene_coords[0] - 1:genex.gene_coords[1]]
         cds_seq_list = []
+
+        # getting actual sequence of cds
         for cds_coords in genex.cds_coords:
             cds_seq = sequence[cds_coords[0] - 1:cds_coords[1]]
             cds_seq_list.append(cds_seq)
         genex.cds_sequence_list = cds_seq_list
+
+        #getting sequence of non-cds
+        non_cds_seq_list = []
+        for cds_coords in genex.cds_coords:
+            print("#######################33")
+            print(genex.gene_coords)
+            print(cds_coords, sequence[genex.gene_coords[0]:cds_coords[0]])
+            print( sequence[cds_coords[1]:genex.gene_coords[1]])
+            print("########################33")
+            non_cds_seq = sequence[genex.gene_coords[0]:cds_coords[0]] + sequence[cds_coords[1]:genex.gene_coords[1]]
+            non_cds_seq_list.append(non_cds_seq)
+        genex.non_cds_sequence_list = non_cds_seq_list
+
+
+        # calculate the gc content amounts
         genex.calculate_gc_contents()
-        dflisttemp.append([genex.name, int(genex.size), genex.gc_content_overall])
+        genex.calculate_gc_content_coding()
+        genex.calculate_gc_content_non_coding()
+
+        dflisttemp.append([genex.name, int(genex.size), genex.gc_content_overall, genex.gc_content_coding, genex.gc_content_non_coding])
 
     hiv1 = Genome("hiv1", gene_object_list, sequence=sequence)
-    hiv1df = pd.DataFrame(np.array(dflisttemp), columns=['locus_tag', 'size', 'overall_gc'])
+    hiv1df = pd.DataFrame(np.array(dflisttemp), columns=['locus_tag', 'size', 'overall_gc', 'coding_gc', 'non_coding_gc'])
     hiv1dfsorted = hiv1df.sort_values(by=['size'])
     hiv1dfsorted['size'] = pd.to_numeric(hiv1dfsorted['size'])
     hiv1dfsorted['overall_gc'] = pd.to_numeric(hiv1dfsorted['overall_gc'])
-    draw_plot_something(hiv1dfsorted)
+    #draw_plot_something(hiv1dfsorted)
     hiv1dfsorted.to_csv('hiv1.csv', encoding='utf-8', index=False)
 
 

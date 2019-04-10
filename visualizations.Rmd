@@ -1,0 +1,104 @@
+---
+title: "BioInf Project"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mosaic)
+library(ggplot2)
+library(car)
+```
+
+Read in stuff
+
+
+```{r}
+hiv1 = read.csv("hiv1.csv")
+```
+
+```{r}
+hiv1["genome"] = c(rep("hiv1",9))
+favstats(~overall_gc | genome, data=hiv1)
+
+ggplot(data=hiv1, aes(x=size, y=value, color=variable)) + geom_point(aes(y = coding_gc, col = "coding_gc")) + geom_point(aes(y = overall_gc, col = "overall_gc")) + geom_point(aes(y = non_coding_gc, col = "non_coding_gc"))
+```
+
+```{r}
+
+```
+
+
+```{r}
+pandora = read.csv("pandoravirus.csv")
+```
+
+```{r}
+pandora["genome"] = c(rep("pandora",1420))
+favstats(~overall_gc | genome, data=pandora)
+
+ggplot(data=pandora[which(pandora$non_coding_gc>0), ], aes(x=size, y=value, color=variable)) + geom_point(aes(y = coding_gc, col = "coding_gc")) + geom_point(aes(y = overall_gc, col = "overall_gc")) + geom_point(aes(y = non_coding_gc, col = "non_coding_gc"))
+
+```
+
+
+
+
+
+```{r}
+herpes = read.csv("herpes.csv")
+```
+
+```{r}
+herpes["genome"] = c(rep("herpes",81))
+favstats(~overall_gc | genome, data=herpes)
+
+ggplot(data=herpes, aes(x=size, y=value, color=variable)) + geom_point(aes(y = coding_gc, col = "coding_gc")) + geom_point(aes(y = overall_gc, col = "overall_gc")) + geom_point(aes(y = non_coding_gc, col = "non_coding_gc"))
+
+```
+
+
+```{r}
+phage = read.csv("phage.csv")
+```
+
+```{r}
+phage["genome"] = c(rep("phage",294 ))
+favstats(~overall_gc | genome, data=phage)
+
+ggplot(data=phage, aes(x=size, y=value, color=variable)) + geom_point(aes(y = coding_gc, col = "coding_gc")) + geom_point(aes(y = overall_gc, col = "overall_gc")) + geom_point(aes(y = non_coding_gc, col = "non_coding_gc"))
+
+```
+
+
+
+
+
+```{r}
+total = rbind(hiv1,phage,herpes,pandora)
+total
+favstats(~overall_gc | genome, data=total)
+ggplot(data=total, aes(x=size, y=value, color=variable)) + geom_point(aes(y = coding_gc, col = "coding_gc")) + geom_point(aes(y = overall_gc, col = "overall_gc")) + geom_point(aes(y = non_coding_gc, col = "non_coding_gc"))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

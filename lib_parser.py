@@ -2,12 +2,10 @@ import re
 import string
 import numpy as np
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
 
 
 class Genome:
-    def __init__(self,  name, genes, sequence):
+    def __init__(self, name, genes, sequence):
         self.name = name
         self.genes = genes
         self.sequence = sequence
@@ -16,7 +14,7 @@ class Genome:
 
 class Gene:
 
-    def __init__(self,  name, gene_coords, cds_coords):
+    def __init__(self, name, gene_coords, cds_coords):
         self.name = name
         self.gene_coords = gene_coords
         self.cds_coords = cds_coords
@@ -34,10 +32,8 @@ class Gene:
 
     def calculate_gc_contents(self):
         self.gc_content_overall = (self.gene_sequence.count('G') +
-                                   self.gene_sequence.count('C'))/len(self.gene_sequence)
+                                   self.gene_sequence.count('C')) / len(self.gene_sequence)
         self.size = int(len(self.gene_sequence))
-
-        #print(self.gc_content_overall)
 
     def calculate_gc_content_coding(self):
         count_gc = 0
@@ -47,7 +43,6 @@ class Gene:
             count_at += section.count('A') + section.count('T')
 
         self.gc_content_coding = count_gc / (count_at + count_gc)
-
 
     def calculate_gc_content_non_coding(self):
         count_gc = 0
@@ -68,9 +63,8 @@ def find_genes(file):
     readstuff = f.read()
     p = re.compile("gene\\s+(?:complement\()?\\d+\.\.\\d+\)?\\s+.*\\s+\/locus_tag=\".+\"")
     result = p.findall(readstuff)
-    print(len(result))
     for match in result:
-        coords =  re.findall('\\d+', match)
+        coords = re.findall('\\d+', match)
         start = coords[0]
         end = coords[1]
         name = match.split("\"")[1].split("\"")[0]
@@ -88,7 +82,7 @@ def find_cds(file):
     result = p.findall(readstuff)
     result1 = p1.findall(readstuff)
     for match in result:
-        coords =  re.findall('\d+', match)
+        coords = re.findall('\d+', match)
         start = coords[0]
         end = coords[1]
         name = match.split("\"")[1].split("\"")[0]
@@ -96,8 +90,8 @@ def find_cds(file):
         cdslist.append(cdsobject)
 
     for match1 in result1:
-        coords =  re.findall('\d+\.\.\d+', match1)
-        #print(coords)
+        coords = re.findall('\d+\.\.\d+', match1)
+        # print(coords)
         pairlist = []
         for pair in coords:
             pairtemp = pair.split("..")
@@ -107,7 +101,6 @@ def find_cds(file):
         name = match1.split("\"")[1].split("\"")[0]
         cdsobject = {"name": name, "cds_coords_list": pairlist}
         cdslist.append(cdsobject)
-        print(cdsobject)
     return cdslist
 
 
@@ -119,7 +112,6 @@ def read_fasta(file):
 
 
 def map_gene_object(genelist, cdslist):
-
     gene_object_list = []
     for gene in genelist:
 
@@ -132,46 +124,43 @@ def map_gene_object(genelist, cdslist):
     return gene_object_list
 
 
-def main():
-    genelist = find_genes("herpes.gb")
+def parse_gene(gb_file, fasta_file, name):
+    genelist = find_genes(gb_file)
 
-    cdslist = find_cds("herpes.gb")
-    sequence = read_fasta("herpes.fasta")
+    cdslist = find_cds(gb_file)
+    sequence = read_fasta(fasta_file)
 
     gene_object_list = map_gene_object(genelist, cdslist)
 
     dflisttemp = []
     for genex in gene_object_list:
-        genex.gene_sequence = sequence[genex.gene_coords[0]-1:genex.gene_coords[1]]
+        genex.gene_sequence = sequence[genex.gene_coords[0] - 1:genex.gene_coords[1]]
         cds_seq_list = []
 
         for cds_coords in genex.cds_coords:
-            cds_seq = sequence[cds_coords[0]-1:cds_coords[1]]
+            cds_seq = sequence[cds_coords[0] - 1:cds_coords[1]]
             cds_seq_list.append(cds_seq)
         genex.cds_sequence_list = cds_seq_list
 
-        #getting sequence of non-cds
+        # getting sequence of non-cds
         myList = ', '.join(map(str, genex.cds_coords)).replace("]", "").replace("[", "").split(", ")
         non_cds_seq = ""
-        for i in range(0,len(myList)-1,2):
-            non_cds_seq = non_cds_seq + sequence[genex.gene_coords[0]: int(myList[i])] + sequence[int(myList[i+1]):genex.gene_coords[1]]
+        for i in range(0, len(myList) - 1, 2):
+            non_cds_seq = non_cds_seq + sequence[genex.gene_coords[0]: int(myList[i])] + sequence[int(myList[i + 1]):
+                                                                                                  genex.gene_coords[1]]
         genex.non_cds_sequence_list = non_cds_seq
-
 
         genex.calculate_gc_contents()
         genex.calculate_gc_content_coding()
         genex.calculate_gc_content_non_coding()
 
-        dflisttemp.append([genex.name, int(genex.size), genex.gc_content_overall, genex.gc_content_coding, genex.gc_content_non_coding])
+        dflisttemp.append([genex.name, int(genex.size), genex.gc_content_overall, genex.gc_content_coding,
+                           genex.gc_content_non_coding])
 
-    pandoradf = pd.DataFrame(np.array(dflisttemp), columns=['locus_tag', 'size', 'overall_gc', 'coding_gc', 'non_coding_gc'])
-    pandoradf.to_csv('herpes.csv', encoding='utf-8', index=False)
+    pandoradf = pd.DataFrame(np.array(dflisttemp),
+                             columns=['locus_tag', 'size', 'overall_gc', 'coding_gc', 'non_coding_gc'])
+    pandoradf.to_csv(name + "_parsed", encoding='utf-8', index=False)
 
-    pandora = Genome("herpes", gene_object_list, sequence=sequence)
-    #print(len(pandora.genes))
+    pandora = Genome(name, gene_object_list, sequence=sequence)
 
-
-if __name__ == "__main__":
-    main()
-
-
+    return pandora
